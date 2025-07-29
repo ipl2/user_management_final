@@ -4,7 +4,7 @@ import secrets
 from typing import Optional, Dict, List
 from pydantic import ValidationError
 from sqlalchemy import func, null, update, select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_email_service, get_settings
 from app.models.user_model import User
@@ -57,26 +57,39 @@ class UserService:
             if existing_user:
                 logger.error("User with given email already exists.")
                 return None
+
             validated_data['hashed_password'] = hash_password(validated_data.pop('password'))
             new_user = User(**validated_data)
-            new_nickname = generate_nickname()
-            while await cls.get_by_nickname(session, new_nickname):
-                new_nickname = generate_nickname()
-            new_user.nickname = new_nickname
-            logger.info(f"User Role: {new_user.role}")
+
             user_count = await cls.count(session)
-            new_user.role = UserRole.ADMIN if user_count == 0 else UserRole.ANONYMOUS            
+            new_user.role = UserRole.ADMIN if user_count == 0 else UserRole.ANONYMOUS
             if new_user.role == UserRole.ADMIN:
                 new_user.email_verified = True
 
             new_user.verification_token = generate_verification_token()
-            session.add(new_user)
-            await session.commit()
-            await email_service.send_verification_email(new_user)
-            return new_user
+
+            max_attempts = 5
+            for attempt in range(max_attempts):
+                new_nickname = generate_nickname()
+                new_user.nickname = new_nickname
+                try:
+                    session.add(new_user)
+                    await session.commit()
+                    await email_service.send_verification_email(new_user)
+                    return new_user
+                except IntegrityError as e:
+                    await session.rollback()
+                    logger.warning(f"Nickname collision on attempt {attempt + 1}: {new_nickname}")
+                    if attempt == max_attempts - 1:
+                        logger.error("Failed to generate unique nickname after multiple attempts.")
+                        return None
+
+            return None
+
         except ValidationError as e:
             logger.error(f"Validation error during user creation: {e}")
             return None
+
 
     @classmethod
     async def update(cls, session: AsyncSession, user_id: UUID, update_data: Dict[str, str]) -> Optional[User]:
@@ -101,7 +114,7 @@ class UserService:
             logger.error(f"Error during user update: {e}")
             return None
         
-# adding the admin updates here
+# adding the admin/managers updates here
     @classmethod
     async def admin_update(cls, session: AsyncSession, user_id: UUID, update_data: Dict[str, str]) -> Optional[User]:
         try:
