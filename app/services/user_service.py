@@ -171,22 +171,42 @@ class UserService:
         user = await cls.get_by_email(session, email)
         if user:
             if user.email_verified is False:
+                logger.warning(f"Login failed for {email}: email not verified.")
                 return None
             if user.is_locked:
+                logger.warning(f"Login failed for {email}: account is now locked due to failed attempts.")
                 return None
             if verify_password(password, user.hashed_password):
                 user.failed_login_attempts = 0
                 user.last_login_at = datetime.now(timezone.utc)
                 session.add(user)
                 await session.commit()
+                logger.info(f"User {email} logged in sucessfully.")
                 return user
             else:
                 user.failed_login_attempts += 1
                 if user.failed_login_attempts >= settings.max_login_attempts:
                     user.is_locked = True
+                    logger.warning(f'User {email} is locked due to failed login attempts.')
+                else:
+                    logger.warning(f"Incorrect password attemp for {email}.")
                 session.add(user)
                 await session.commit()
+        else:
+            logger.warning(f"Login attempt failed. {email} not found.")
         return None
+
+# added class to allow admin-only to unlock and reset attempts
+    @classmethod
+    async def unlock_user_account(cls, session: AsyncSession, user_id: UUID) -> bool:
+        user = await cls.get_by_id(session, user_id)
+        if user and user.is_locked:
+            user.is_locked = False
+            user.failed_login_attempts = 0
+            session.add(user)
+            await session.commit()
+            return True
+        return False
 
     @classmethod
     async def is_account_locked(cls, session: AsyncSession, email: str) -> bool:
