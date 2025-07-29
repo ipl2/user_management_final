@@ -94,6 +94,12 @@ class UserService:
     @classmethod
     async def update(cls, session: AsyncSession, user_id: UUID, update_data: Dict[str, str]) -> Optional[User]:
         try:
+            # remove sensitive fields if its present to prevent updates from unauthorized users
+            sensitive_fields = {"role", "email_verified", "is_locked", "verification_token", "failed_login_attempts"}
+            for field in sensitive_fields:
+                if field in update_data:
+                    update_data.pop(field)
+
             # validated_data = UserUpdate(**update_data).dict(exclude_unset=True)
             validated_data = UserUpdatePublic(**update_data).model_dump(exclude_unset=True)
 
