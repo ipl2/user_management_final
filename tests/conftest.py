@@ -168,7 +168,7 @@ async def users_with_same_role_50_users(db_session):
             "nickname": f"{fake.user_name()}_{i}",
             "first_name": fake.first_name(),
             "last_name": fake.last_name(),
-            "email": fake.email(),
+            "email": f"user{i}@email.com",
             "hashed_password": fake.password(),
             "role": UserRole.AUTHENTICATED,
             "email_verified": False,
