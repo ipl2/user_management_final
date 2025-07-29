@@ -7,6 +7,7 @@ import uuid
 import re
 from app.models.user_model import UserRole
 from app.utils.nickname_gen import generate_nickname
+from uuid import UUID
 
 
 def validate_url(url: Optional[str]) -> Optional[str]:
@@ -16,6 +17,26 @@ def validate_url(url: Optional[str]) -> Optional[str]:
     if not re.match(url_regex, url):
         raise ValueError('Invalid URL format')
     return url
+
+# adding class. allowed updated fields for public users
+class UserUpdatePublic(BaseModel):
+    first_name: Optional[str] = Field(None, example="John")
+    last_name: Optional[str] = Field(None, example="Doe")
+    password: Optional[str] = Field(None, min_length=8)
+    phone_number: Optional[str] = None
+    email: Optional[EmailStr] = Field(None, example="john.doe@example.com")
+    github_profile_url: Optional[str] = Field(None, example="https://github.com/johndoe")
+    linkedin_profile_url: Optional[str] =Field(None, example="https://linkedin.com/in/johndoe")
+
+    class Config:
+        from_attributes = True
+    
+# adding class. allowed updated fields for admins only
+class UserUpdateAdmin(UserUpdatePublic):
+    role: Optional[UserRole] = None
+    email_verified: Optional[bool] = None
+    is_locked: Optional[bool] = None
+    verification_token: Optional[str] = None
 
 class UserBase(BaseModel):
     email: EmailStr = Field(..., example="john.doe@example.com")
