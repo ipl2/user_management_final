@@ -72,6 +72,34 @@ async def test_account_lock_and_unlock(db_session: AsyncSession, user: User):
     await db_session.refresh(user)
     assert not user.is_locked, "Account should be unlocked after calling unlock_account()"
 
+# tests admin unlocking user
+@pytest.mark.asyncio
+async def test_admin_can_unlock_user(async_client, admin_token, locked_user):
+    response = await async_client.post(
+        f"/admin/users/{locked_user.id}/unlock",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+    assert "unlocked successfully" in response.json()["message"]
+
+# tests manager unlocking user
+@pytest.mark.asyncio
+async def test_manager_can_unlock_user(async_client,manager_token, locked_user):
+    response = await async_client.post(
+        f"/admin/users/{locked_user.id}/unlock",
+        headers={"Authorization": f"Bearer {manager_token}"},
+    )
+    assert response.status_code == 200
+
+# tests users cannot unlock
+@pytest.mark.asyncio
+async def test_user_cannot_unlock_user(async_client, user_token, locked_user):
+    response = await async_client.post(
+        f"/admin/users/{locked_user.id}/unlock",
+        headers={"Authorization": f"Bearer {user_token}"},
+    )
+    assert response.status_code == 403
+
 @pytest.mark.asyncio
 async def test_email_verification(db_session: AsyncSession, user: User):
     """
