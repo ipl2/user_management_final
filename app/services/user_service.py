@@ -161,6 +161,7 @@ class UserService:
         result = await cls._execute_query(session, query)
         return result.scalars().all() if result else []
 
+# properly injecting EmailService isntance.
     @classmethod
     async def register_user(cls, session: AsyncSession, user_data: Dict[str, str], email_service: EmailService) -> Optional[User]:
         return await cls.create(session, user_data, email_service)
