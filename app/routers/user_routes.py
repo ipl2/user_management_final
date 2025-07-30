@@ -140,8 +140,6 @@ async def admin_update_user(
         links=create_user_links(updated_user.id, request)
     )
 
-
-
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT, name="delete_user", tags=["User Management Requires (Admin or Manager Roles)"])
 async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme), current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))):
     """
@@ -197,6 +195,19 @@ async def create_user(user: UserCreate, request: Request, db: AsyncSession = Dep
         links=create_user_links(created_user.id, request)
     )
 
+# adding a new route to only admins-only to unlock a locked user account
+@router.post("/admin/users/{user_id}/unlock", status_code=status.HTTP_200_OK, tags=["Admin and Manager Only"])
+async def unlock_user_account(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    token: str = Depends(oauth2_scheme),
+    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
+):
+    '''Admin/manager can unlock a user account by resetting lock status and login attempts'''
+    success = await UserService.unlock_user_account(db, user_id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found or not locked")
+    return {"message": f"User account {user_id} has been unlocked successfully."}
 
 @router.get("/users/", response_model=UserListResponse, tags=["User Management Requires (Admin or Manager Roles)"])
 async def list_users(
