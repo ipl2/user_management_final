@@ -207,7 +207,12 @@ async def unlock_user_account(
     success = await UserService.unlock_user_account(db, user_id)
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found or not locked")
-    return {"message": f"User account {user_id} has been unlocked successfully."}
+    updated_user = await UserService.get_by_id(db, user_id)
+    return {
+        "message": f"User account {user_id} has been unlocked successfully.",
+        "is_locked": updated_user.is_locked,
+        "failed_login_attempts": updated_user.failed_login_attempts,
+    }
 
 @router.get("/users/", response_model=UserListResponse, tags=["User Management Requires (Admin or Manager Roles)"])
 async def list_users(
