@@ -155,7 +155,7 @@ async def test_verify_email_with_token(db_session, user):
     result = await UserService.verify_email_with_token(db_session, user.id, token)
     assert result is True
 
-# Test unlocking a user's account
+# Test unlocking logic directly (used by the admin/manger endpoint)
 async def test_unlock_user_account(db_session, locked_user):
     unlocked = await UserService.unlock_user_account(db_session, locked_user.id)
     assert unlocked, "The account should be unlocked"

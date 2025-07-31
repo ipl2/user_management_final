@@ -190,3 +190,36 @@ async def test_list_users_unauthorized(async_client, user_token):
         headers={"Authorization": f"Bearer {user_token}"}
     )
     assert response.status_code == 403  # Forbidden, as expected for regular user
+
+'''TEST 2 START'''
+
+# tests reset behavior for admin
+@pytest.mark.asyncio
+async def test_unlock_resets_attempts_admin(async_client, admin_token, locked_user):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = await async_client.post(f"/admin/users/{locked_user.id}/unlock", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "unlocked successfully" in data["message"]
+    assert data["is_locked"] is False
+    assert data["failed_login_attempts"] == 0
+
+# tests reset behavior for manager
+@pytest.mark.asyncio
+async def test_unlock_resets_attempts_admin(async_client, manager_token, locked_user):
+    headers = {"Authorization": f"Bearer {manager_token}"}
+    response = await async_client.post(f"/admin/users/{locked_user.id}/unlock", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "unlocked successfully" in data["message"]
+    assert data["is_locked"] is False
+    assert data["failed_login_attempts"] == 0
+
+# tests reset behavior for user is denied
+    @pytest.mark.asyncio
+    async def test_unlock_reset_denied_user(async_client, user_token, locked_user):
+        headers = {"Authorization": f"Bearer {user_token}"}
+        response = await async_client.post(f"/admin/users/{locked_user.id}/unlock", headers=headers)
+        assert response.status_code == 403
+
+'''TEST 2 END'''

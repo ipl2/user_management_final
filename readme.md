@@ -20,7 +20,7 @@
 
 [Testing 1](https://github.com/ipl2/user_management_final/blob/main/tests/test_models/test_user_model.py)
 
-[Testing 2](https://github.com/ipl2/user_management_final/blob/main/tests/test_models/test_user_model.py)
+[Testing 2](https://github.com/ipl2/user_management_final/blob/main/tests/test_api/test_users_api.py)
 
 [Testing 3](https://github.com/ipl2/user_management_final/blob/main/tests/test_models/test_user_model.py)
 
