@@ -59,31 +59,36 @@ class UserService:
                 return None
 
             validated_data['hashed_password'] = hash_password(validated_data.pop('password'))
-            new_user = User(**validated_data)
+
+            validated_data.pop('nickname', None)
+            validated_data.pop('role', None)
 
             user_count = await cls.count(session)
-            new_user.role = UserRole.ADMIN if user_count == 0 else UserRole.ANONYMOUS
-            if new_user.role == UserRole.ADMIN:
-                new_user.email_verified = True
-
-            new_user.verification_token = generate_verification_token()
+            role = UserRole.ADMIN if user_count == 0 else UserRole.ANONYMOUS
+            email_verified = role == UserRole.ADMIN
+            verification_token = generate_verification_token()
 
             max_attempts = 5
             for attempt in range(max_attempts):
                 new_nickname = generate_nickname()
-                new_user.nickname = new_nickname
+                user_instance = User(
+                    **validated_data,
+                    nickname=new_nickname,
+                    role=role,
+                    email_verified=email_verified,
+                    verification_token=verification_token
+                )
+
                 try:
-                    session.add(new_user)
+                    session.add(user_instance)
                     await session.commit()
-                    await email_service.send_verification_email(new_user)
-                    return new_user
-                except IntegrityError as e:
+                    await email_service.send_verification_email(user_instance)
+                    return user_instance
+                except IntegrityError:
                     await session.rollback()
                     logger.warning(f"Nickname collision on attempt {attempt + 1}: {new_nickname}")
-                    if attempt == max_attempts - 1:
-                        logger.error("Failed to generate unique nickname after multiple attempts.")
-                        return None
 
+            logger.error("Failed to generate unique nickname after multiple attempts.")
             return None
 
         except ValidationError as e:

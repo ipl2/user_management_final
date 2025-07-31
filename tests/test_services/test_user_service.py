@@ -2,6 +2,8 @@ from builtins import range
 import pytest
 from sqlalchemy import select
 from app.dependencies import get_settings
+from unittest.mock import AsyncMock, MagicMock
+from sqlalchemy.exc import IntegrityError
 from app.models.user_model import User, UserRole
 from app.services.user_service import UserService
 from app.utils.nickname_gen import generate_nickname
@@ -161,3 +163,57 @@ async def test_unlock_user_account(db_session, locked_user):
     assert unlocked, "The account should be unlocked"
     refreshed_user = await UserService.get_by_id(db_session, locked_user.id)
     assert not refreshed_user.is_locked, "The user should no longer be locked"
+
+'''TEST 3 START'''
+
+@pytest.mark.asyncio
+async def test_create_user_succeeds_after_retries(db_session, email_service):
+    user_data = {
+        "nickname": generate_nickname(), 
+        "email": "test@example.com",
+        "password": "securePass123",
+        "role": "ANONYMOUS"
+    }
+    UserService.get_by_email = AsyncMock(return_value=None)
+    UserService.count = AsyncMock(return_value=1)
+
+    add_attempts = 0
+
+    async def commit_side_effect():
+        nonlocal add_attempts
+        add_attempts += 1
+        if add_attempts < 3:
+            raise IntegrityError("duplicate", {}, None)
+
+    db_session.add = AsyncMock()
+    db_session.commit = AsyncMock(side_effect=commit_side_effect)
+    db_session.rollback = AsyncMock()
+
+    user = await UserService.create(db_session, user_data, email_service)
+
+    assert user is not None
+    assert add_attempts == 3
+    email_service.send_verification_email.assert_awaited_once_with(user)
+
+@pytest.mark.asyncio
+async def test_create_user_fails_after_max_retries(db_session, email_service):
+    user_data = {
+        "nickname": generate_nickname(), 
+        "email": "test@example.com",
+        "password": "securePass123",
+        "role": "ANONYMOUS"
+    }
+    
+    UserService.get_by_email = AsyncMock(return_value=None)
+    UserService.count = AsyncMock(return_value=1)
+    email_service.send_verification_email = AsyncMock()
+
+    db_session.add = AsyncMock(side_effect=IntegrityError("duplicate", {}, None))
+    db_session.commit = AsyncMock(side_effect=IntegrityError("duplicate", {}, None))
+
+    user = await UserService.create(db_session, user_data, email_service)
+
+    assert user is None
+    email_service.send_verification_email.assert_not_awaited()
+
+'''TEST 3 END'''
