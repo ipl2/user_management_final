@@ -161,5 +161,4 @@ def test_user_update_admin_invalid_role():
     with pytest.raises(ValidationError):
         UserUpdateAdmin(**invalid_data)
 
-
 '''TEST 4 END'''
