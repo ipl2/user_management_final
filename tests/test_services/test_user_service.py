@@ -166,6 +166,7 @@ async def test_unlock_user_account(db_session, locked_user):
 
 '''TEST 3 START'''
 
+# tests behavior of retry logic successfully passing
 @pytest.mark.asyncio
 async def test_create_user_succeeds_after_retries(db_session, email_service):
     user_data = {
@@ -195,6 +196,7 @@ async def test_create_user_succeeds_after_retries(db_session, email_service):
     assert add_attempts == 3
     email_service.send_verification_email.assert_awaited_once_with(user)
 
+# tests behavior of retry logic unsuccessfully passing
 @pytest.mark.asyncio
 async def test_create_user_fails_after_max_retries(db_session, email_service):
     user_data = {

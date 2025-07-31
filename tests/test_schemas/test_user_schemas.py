@@ -2,7 +2,8 @@ import uuid
 import pytest
 from pydantic import ValidationError
 from datetime import datetime
-from app.schemas.user_schemas import UserBase, UserCreate, UserUpdate, UserResponse, UserListResponse, LoginRequest
+from app.schemas.user_schemas import UserBase, UserUpdatePublic, UserUpdateAdmin, UserCreate, UserUpdate, UserResponse, UserListResponse, LoginRequest
+from app.models.user_model import UserRole
 
 # Fixtures for common test data
 @pytest.fixture
@@ -108,3 +109,57 @@ def test_user_base_url_invalid(url, user_base_data):
     user_base_data["profile_picture_url"] = url
     with pytest.raises(ValidationError):
         UserBase(**user_base_data)
+
+'''TEST 4 START'''
+
+# tests for users allowed updated fields
+def test_user_update_public_valid():
+    valid_data = {
+        "first_name": "Joe",
+        "last_name": "Doe",
+        "password": "StrongPass123",
+        "phone_number": "1234567890",
+        "email": "joe.doe@example.com",
+        "github_profile_url": "https://github.com/joedoe",
+        "linkedin_profile_url": "https://linkedin.com/in/joedoe"
+    }
+    obj = UserUpdatePublic(**valid_data)
+    assert obj.first_name == "Joe"
+    assert obj.email == "joe.doe@example.com"
+
+def test_user_update_public_invalid_email():
+    invalid_data = {
+        "email": "bad-email"
+    }
+    with pytest.raises(ValidationError):
+        UserUpdatePublic(**invalid_data)
+
+def test_user_update_public_short_password():
+    invalid_data = {
+        "password": "short"
+    }
+    with pytest.raises(ValidationError):
+        UserUpdatePublic(**invalid_data)
+
+#  tests for admins allowed fields to update
+def test_user_update_admin_valid():
+    valid_data = {
+        "first_name": "Joe",
+        "role": UserRole.ADMIN,
+        "email_verified": True,
+        "is_locked": False,
+        "verification_token": "token123"
+    }
+    obj = UserUpdateAdmin(**valid_data)
+    assert obj.role == UserRole.ADMIN
+    assert obj.email_verified is True
+
+def test_user_update_admin_invalid_role():
+    invalid_data = {
+        "role": "INVALID_ROLE"
+    }
+    with pytest.raises(ValidationError):
+        UserUpdateAdmin(**invalid_data)
+
+
+'''TEST 4 END'''
