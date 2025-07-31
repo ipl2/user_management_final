@@ -2,8 +2,10 @@ from builtins import str
 import pytest
 from httpx import AsyncClient
 from app.main import app
+from unittest.mock import AsyncMock
 from app.models.user_model import User, UserRole
 from app.utils.nickname_gen import generate_nickname
+from app.dependencies import get_email_service
 from app.utils.security import hash_password
 from app.services.jwt_service import decode_token  # Import your FastAPI app
 
@@ -223,3 +225,52 @@ async def test_unlock_resets_attempts_admin(async_client, manager_token, locked_
         assert response.status_code == 403
 
 '''TEST 2 END'''
+
+'''TEST 5 START'''
+
+# tests registration successful creates using correct injection
+@pytest.mark.asyncio
+async def test_register_success(async_client, app, mock_email_service):
+    app.dependency_overrides[get_email_service] = lambda: mock_email_service
+
+    user_data = {
+        "nickname": "johndoe123",
+        "email": "john.doe@example.com",
+        "password": "StrongPassword123",
+        "role": "ANONYMOUS"
+    }
+
+    response = await async_client.post("/register/", json=user_data)
+
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["email"] == user_data["email"]
+    mock_email_service.send_verification_email.assert_awaited_once()
+
+    app.dependency_overrides.clear()
+
+# tests registration does not sucesssfully create
+@pytest.mark.asyncio
+async def test_register_fails_existing_email(async_client, app, mock_email_service):
+    app.dependency_overrides[get_email_service] = lambda: mock_email_service
+
+    existing_user_data = {
+        "nickname": "johndoe123",
+        "email": "john.doe@example.com",
+        "password": "StrongPassword123",
+        "role": "ANONYMOUS"
+    }
+
+    response1 = await async_client.post("/register/", json=existing_user_data)
+    assert response1.status_code == 200
+
+    mock_email_service.send_verification_email.reset_mock()
+
+    response2 = await async_client.post("/register/", json=existing_user_data)
+    assert response2.status_code == 400
+    assert response2.json()["detail"] == "Email already exists"
+    mock_email_service.send_verification_email.assert_not_awaited()
+
+    app.dependency_overrides.clear()
+
+'''TEST 5 END'''

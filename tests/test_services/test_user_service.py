@@ -1,5 +1,6 @@
 from builtins import range
 import pytest
+import os
 from sqlalchemy import select
 from app.dependencies import get_settings
 from unittest.mock import AsyncMock, MagicMock
@@ -11,6 +12,7 @@ from app.utils.nickname_gen import generate_nickname
 pytestmark = pytest.mark.asyncio
 
 # Test creating a user with valid data
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="Skip real email tests in CI")
 async def test_create_user_with_valid_data(db_session, email_service):
     user_data = {
         "nickname": generate_nickname(),
@@ -95,6 +97,7 @@ async def test_list_users_with_pagination(db_session, users_with_same_role_50_us
     assert users_page_1[0].id != users_page_2[0].id
 
 # Test registering a user with valid data
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="Skip real email tests in CI")
 async def test_register_user_with_valid_data(db_session, email_service):
     user_data = {
         "nickname": generate_nickname(),
@@ -168,7 +171,7 @@ async def test_unlock_user_account(db_session, locked_user):
 
 # tests behavior of retry logic successfully passing
 @pytest.mark.asyncio
-async def test_create_user_succeeds_after_retries(db_session, email_service):
+async def test_create_user_succeeds_after_retries(db_session, mock_email_service):
     user_data = {
         "nickname": generate_nickname(), 
         "email": "test@example.com",
@@ -190,15 +193,15 @@ async def test_create_user_succeeds_after_retries(db_session, email_service):
     db_session.commit = AsyncMock(side_effect=commit_side_effect)
     db_session.rollback = AsyncMock()
 
-    user = await UserService.create(db_session, user_data, email_service)
+    user = await UserService.create(db_session, user_data, mock_email_service)
 
     assert user is not None
     assert add_attempts == 3
-    email_service.send_verification_email.assert_awaited_once_with(user)
+    mock_email_service.send_verification_email.assert_awaited_once_with(user)
 
 # tests behavior of retry logic unsuccessfully passing
 @pytest.mark.asyncio
-async def test_create_user_fails_after_max_retries(db_session, email_service):
+async def test_create_user_fails_after_max_retries(db_session, mock_email_service):
     user_data = {
         "nickname": generate_nickname(), 
         "email": "test@example.com",
@@ -208,14 +211,14 @@ async def test_create_user_fails_after_max_retries(db_session, email_service):
     
     UserService.get_by_email = AsyncMock(return_value=None)
     UserService.count = AsyncMock(return_value=1)
-    email_service.send_verification_email = AsyncMock()
+    mock_email_service.send_verification_email = AsyncMock()
 
     db_session.add = AsyncMock(side_effect=IntegrityError("duplicate", {}, None))
     db_session.commit = AsyncMock(side_effect=IntegrityError("duplicate", {}, None))
 
-    user = await UserService.create(db_session, user_data, email_service)
+    user = await UserService.create(db_session, user_data, mock_email_service)
 
     assert user is None
-    email_service.send_verification_email.assert_not_awaited()
+    mock_email_service.send_verification_email.assert_not_awaited()
 
 '''TEST 3 END'''

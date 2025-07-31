@@ -45,6 +45,10 @@ engine = create_async_engine(TEST_DATABASE_URL, echo=settings.debug)
 AsyncTestingSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 AsyncSessionScoped = scoped_session(AsyncTestingSessionLocal)
 
+@pytest.fixture
+def app():
+    from app.main import app as fastapi_app
+    return fastapi_app
 
 @pytest.fixture
 def email_service():
@@ -56,9 +60,9 @@ def email_service():
 
 # this is what creates the http client for your api tests
 @pytest.fixture(scope="function")
-async def async_client(db_session):
+async def async_client(app, db_session):
+    app.dependency_overrides[get_db] = lambda: db_session
     async with AsyncClient(app=app, base_url="http://testserver") as client:
-        app.dependency_overrides[get_db] = lambda: db_session
         try:
             yield client
         finally:
@@ -228,7 +232,7 @@ def user_token(user):
     return create_access_token(data=token_data, expires_delta=timedelta(minutes=30))
 
 @pytest.fixture
-def email_service():
+def mock_email_service():
     if settings.send_real_mail == 'true':
         # Return the real email service when specifically testing email functionality
         return EmailService()

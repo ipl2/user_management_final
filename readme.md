@@ -26,7 +26,7 @@
 
 [Testing 4](https://github.com/ipl2/user_management_final/blob/main/tests/test_schemas/test_user_schemas.py)
 
-[Testing 5](https://github.com/ipl2/user_management_final/blob/main/tests/test_models/test_user_model.py)
+[Testing 5](https://github.com/ipl2/user_management_final/blob/main/tests/test_api/test_users_api.py)
 
 [Testing 6](https://github.com/ipl2/user_management_final/blob/main/tests/test_models/test_user_model.py)
 
