@@ -1,5 +1,6 @@
 from builtins import range
 import pytest
+import os
 from sqlalchemy import select
 from app.dependencies import get_settings
 from unittest.mock import AsyncMock, MagicMock

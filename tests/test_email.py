@@ -1,4 +1,5 @@
 import pytest
+import os
 from app.services.email_service import EmailService
 from app.utils.template_manager import TemplateManager
 
