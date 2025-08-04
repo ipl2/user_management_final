@@ -35,3 +35,12 @@ class EmailService:
             "verification_url": verification_url,
             "email": user.email
         }, 'email_verification')
+
+    async def send_email(self, to_email: str, subject: str, body: str):
+        self.smtp_client.send_email(subject, body, to_email)
+
+
+    async def send_professional_status_upgraded_email(self, user: User):
+        subject = "Professional Status Upgraded."
+        body = f"Dear {user.first_name or user.nickname},\n\nYour account has been upgraded to professional status.\n\nYour Team"
+        await self.send_email(user.email, subject, body)
