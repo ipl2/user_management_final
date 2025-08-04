@@ -128,7 +128,7 @@ class UserService:
         
 # adding the admin/managers updates here
     @classmethod
-    async def admin_update(cls, session: AsyncSession, user_id: UUID, update_data: Dict[str, str]) -> Optional[User]:
+    async def admin_update(cls, session: AsyncSession, user_id: UUID, update_data: Dict[str, str], email_service: EmailService) -> Optional[User]:
         try:
             validated_data = UserUpdateAdmin(**update_data).model_dump(exclude_unset=True)
 
