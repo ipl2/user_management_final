@@ -117,10 +117,11 @@ async def admin_update_user(
     update_data: UserUpdateAdmin,
     request: Request,
     session: AsyncSession = Depends(get_db),
+    email_service: EmailService = Depends(get_email_service),
     token: str = Depends(oauth2_scheme),
     current_user: dict = Depends(require_role(["ADMIN", "MANAGER"])),
 ):
-    updated_user = await UserService.admin_update(session, user_id, update_data.model_dump())
+    updated_user = await UserService.admin_update(session, user_id, update_data.model_dump(), email_service)
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found or update failed")
     return UserResponse.model_construct(
