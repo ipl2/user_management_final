@@ -117,6 +117,7 @@ async def admin_update_user(
     update_data: UserUpdateAdmin,
     request: Request,
     session: AsyncSession = Depends(get_db),
+    email_service: EmailService = Depends(get_email_service),
     token: str = Depends(oauth2_scheme),
     current_user: dict = Depends(require_role(["ADMIN", "MANAGER"])),
 ):
