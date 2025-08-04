@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_email_service, get_settings
 from app.models.user_model import User
 from app.schemas.user_schemas import UserCreate, UserUpdate, UserUpdateAdmin, UserUpdatePublic
+from app.services.email_service import EmailService
 from app.utils.nickname_gen import generate_nickname
 from app.utils.security import generate_verification_token, hash_password, verify_password
 from uuid import UUID
@@ -131,6 +132,11 @@ class UserService:
         try:
             validated_data = UserUpdateAdmin(**update_data).model_dump(exclude_unset=True)
 
+            # adding notification feature to be sent when status is updated
+            user_before = await cls.get_by_id(session, user_id)
+            if not user_before:
+                return None
+
             if 'password' in validated_data:
                 validated_data['hashed_password'] = hash_password(validated_data.pop('password'))
 
@@ -141,6 +147,12 @@ class UserService:
             if updated_user:
                 session.refresh(updated_user)
                 logger.info(f"[ADMIN] User {user_id} updated successfully.")
+
+                # send notification if professional status does get upgraded
+                was_professional = user_before.is_professional
+                now_professinal = updated_user.is_professional
+                if not was_professional and now_professinal:
+                    await email_service.send_professional_status_upgraded_email(updated_user)
                 return updated_user
             else:
                 logger.error(f"[ADMIN] User {user_id} not found after update attempt.")
