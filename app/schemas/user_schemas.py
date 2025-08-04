@@ -37,6 +37,7 @@ class UserUpdateAdmin(UserUpdatePublic):
     email_verified: Optional[bool] = None
     is_locked: Optional[bool] = None
     verification_token: Optional[str] = None
+    is_professional: Optional[bool] = None
 
 class UserBase(BaseModel):
     email: EmailStr = Field(..., example="john.doe@example.com")
