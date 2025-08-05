@@ -68,7 +68,6 @@ async def test_create_user_duplicate_email(async_client, verified_user):
     user_data = {
         "email": verified_user.email,
         "password": "AnotherPassword123!",
-        "role": UserRole.ADMIN.name
     }
     response = await async_client.post("/register/", json=user_data)
     assert response.status_code == 400
