@@ -292,3 +292,24 @@ async def test_status_update_denied_for_users(db_session, user, other_user):
     assert result is False
 
 '''TEST 6 END'''
+
+'''TEST 7 START'''
+
+# test that status updates for admin and manager
+@pytest.mark.asyncio
+async def test_status_update_success_for_admin_and_manager(db_session, admin_user, manager_user, user):
+    for acting_user in (admin_user, manager_user):
+        user.role = UserRole.AUTHENTICATED
+        await db_session.commit()
+
+        result = await UserService.update_status_to_professional(
+            db_session=db_session,
+            acting_user=acting_user,
+            target_user_id=user.id
+        )
+
+        await db_session.refresh(user)
+        assert result is True
+        assert user.role == UserRole.PROFESSIONAL
+
+'''TEST 7 END'''
