@@ -8,8 +8,34 @@ from sqlalchemy.exc import IntegrityError
 from app.models.user_model import User, UserRole
 from app.services.user_service import UserService, EmailService
 from app.utils.nickname_gen import generate_nickname
+from uuid import uuid4
 
 pytestmark = pytest.mark.asyncio
+
+# Adding helper
+def unique_str(base: str, max_len: int) -> str:
+    suffix = f"_{uuid4()}"
+    allowed_len = max_len - len(suffix)
+    return base[:allowed_len] + suffix
+
+# Fixture modification just in case
+@pytest.fixture(scope="function")
+async def user(db_session):
+    nickname = unique_str(generate_nickname(), 50)
+    email = unique_str("user@example.com", 255)
+    user_data = {
+        "nickname": nickname,
+        "email": email,
+        "hashed_password": "hashedpasswordplaceholder",
+        "role": UserRole.AUTHENTICATED,
+        "email_verified": False,
+        "is_locked": False,
+    }
+    user = User(**user_data)
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
 
 # Test creating a user with valid data
 @pytest.mark.skipif(os.getenv("CI") == "true", reason="Skip real email tests in CI")
@@ -200,6 +226,7 @@ async def test_create_user_succeeds_after_retries(db_session, mock_email_service
         "password": "securePass123",
         "role": "ANONYMOUS"
     }
+
     UserService.get_by_email = AsyncMock(return_value=None)
     UserService.count = AsyncMock(return_value=1)
 
@@ -210,16 +237,19 @@ async def test_create_user_succeeds_after_retries(db_session, mock_email_service
         add_attempts += 1
         if add_attempts < 3:
             raise IntegrityError("duplicate", {}, None)
+        else:
+            return None
 
     db_session.add = AsyncMock()
-    db_session.commit = AsyncMock(side_effect=commit_side_effect)
-    db_session.rollback = AsyncMock()
 
-    user = await UserService.create(db_session, user_data, mock_email_service)
+    with patch.object(db_session, "commit", new=AsyncMock(side_effect=commit_side_effect)):
+        with patch.object(db_session, "rollback", new=AsyncMock()):
+            user = await UserService.create(db_session, user_data, mock_email_service)
 
     assert user is not None
     assert add_attempts == 3
     mock_email_service.send_verification_email.assert_awaited_once_with(user)
+
 
 # tests behavior of retry logic unsuccessfully passing
 @pytest.mark.asyncio
@@ -230,17 +260,35 @@ async def test_create_user_fails_after_max_retries(db_session, mock_email_servic
         "password": "securePass123",
         "role": "ANONYMOUS"
     }
-    
+
     UserService.get_by_email = AsyncMock(return_value=None)
     UserService.count = AsyncMock(return_value=1)
     mock_email_service.send_verification_email = AsyncMock()
 
-    db_session.add = AsyncMock(side_effect=IntegrityError("duplicate", {}, None))
-    db_session.commit = AsyncMock(side_effect=IntegrityError("duplicate", {}, None))
+    db_session.add = AsyncMock()
 
-    user = await UserService.create(db_session, user_data, mock_email_service)
+    with patch.object(db_session, "commit", new=AsyncMock(side_effect=IntegrityError("duplicate", {}, None))):
+        with patch.object(db_session, "rollback", new=AsyncMock()):
+            user = await UserService.create(db_session, user_data, mock_email_service)
 
     assert user is None
     mock_email_service.send_verification_email.assert_not_awaited()
 
 '''TEST 3 END'''
+
+'''TEST 6 START'''
+
+# tests that status update is denied by nonadmins/nonmangers
+@pytest.mark.asyncio
+async def test_status_update_denied_for_users(db_session, user, other_user):
+    user.role = UserRole.ANONYMOUS
+    await db_session.commit()
+
+    result = await UserService.update_status_to_professional(
+        db_session=db_session,
+        acting_user=user,
+        target_user_id=other_user.id
+    )
+    assert result is False
+
+'''TEST 6 END'''
