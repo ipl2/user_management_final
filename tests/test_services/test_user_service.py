@@ -289,7 +289,7 @@ async def test_status_update_denied_for_users(db_session, user, other_user):
         acting_user=user,
         target_user_id=other_user.id
     )
-    assert result is False
+    assert result is None
 
 '''TEST 6 END'''
 
@@ -309,7 +309,27 @@ async def test_status_update_success_for_admin_and_manager(db_session, admin_use
         )
 
         await db_session.refresh(user)
-        assert result is True
+        assert result is not None
+        assert isinstance(result, User)
         assert user.role == UserRole.PROFESSIONAL
 
 '''TEST 7 END'''
+
+'''TEST 8 START'''
+
+# test the notification gets sent when status is updated
+@pytest.mark.asyncio
+async def test_notification_updated_status_sent():
+    mock_email_service = AsyncMock()
+    test_user = User(email="test@example.com", role="PROFESSIONAL")
+
+    await UserService.notify_user_of_update(mock_email_service, test_user)
+
+    mock_email_service.send_user_email.assert_awaited_once_with(
+        recipient="test@example.com",
+        subject="Status is updated!",
+        template_name="user_promoted.html",
+        context={"user": test_user},
+    )
+
+'''TEST 8 END'''

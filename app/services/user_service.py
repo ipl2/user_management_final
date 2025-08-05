@@ -284,14 +284,25 @@ class UserService:
     
 # staticmethod for updating status
     @staticmethod
-    async def update_status_to_professional(db_session: AsyncSession, acting_user: User, target_user_id: int) -> bool:
+    async def update_status_to_professional(db_session: AsyncSession, acting_user: User, target_user_id: int) -> User | None:
         if acting_user.role not in [UserRole.MANAGER, UserRole.ADMIN]:
-            return False
+            return None
 
         target_user = await db_session.get(User, target_user_id)
         if not target_user:
-            return False
+            return None
 
         target_user.role = UserRole.PROFESSIONAL
         await db_session.commit()
-        return True
+        return target_user
+
+# notification sent when updated to professional
+    @staticmethod
+    async def notify_user_of_update(email_service: EmailService, user: User):
+        await email_service.send_user_email(
+            recipient=user.email,
+            subject="Status is updated!",
+            template_name="user_promoted.html",
+            context={"user": user}
+        )
+
