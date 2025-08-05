@@ -7,7 +7,7 @@ from sqlalchemy import func, null, update, select
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_email_service, get_settings
-from app.models.user_model import User
+from app.models.user_model import User, UserRole
 from app.schemas.user_schemas import UserCreate, UserUpdate, UserUpdateAdmin, UserUpdatePublic
 from app.services.email_service import EmailService
 from app.utils.nickname_gen import generate_nickname
@@ -281,3 +281,17 @@ class UserService:
             await session.commit()
             return True
         return False
+    
+# staticmethod for updating status
+    @staticmethod
+    async def update_status_to_professional(db_session: AsyncSession, acting_user: User, target_user_id: int) -> bool:
+        if acting_user.role not in [UserRole.MANAGER, UserRole.ADMIN]:
+            return False
+
+        target_user = await db_session.get(User, target_user_id)
+        if not target_user:
+            return False
+
+        target_user.role = UserRole.PROFESSIONAL
+        await db_session.commit()
+        return True
