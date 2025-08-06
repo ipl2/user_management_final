@@ -333,3 +333,19 @@ async def test_notification_updated_status_sent():
     )
 
 '''TEST 8 END'''
+
+'''TEST 9 START'''
+
+# tests that invalid inputs are rejected when updating profile
+@pytest.mark.asyncio
+async def test_update_user_profile_invalid_fields(db_session, user):
+    update_data = {
+        "first_name": "a" * 50,
+        "github_profile_url": "not_a_url",
+        "password": "short", 
+    }
+
+    updated_user = await UserService.update(db_session, user.id, update_data)
+    assert updated_user is None
+
+'''TEST 9 END'''
