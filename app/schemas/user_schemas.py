@@ -20,8 +20,8 @@ def validate_url(url: Optional[str]) -> Optional[str]:
 
 # adding class. allowed updated fields for public users
 class UserUpdatePublic(BaseModel):
-    first_name: Optional[str] = Field(None, example="John")
-    last_name: Optional[str] = Field(None, example="Doe")
+    first_name: Optional[str] = Field(None, max_length=50, example="John")
+    last_name: Optional[str] = Field(None, max_length=50,  example="Doe")
     password: Optional[str] = Field(None, min_length=8)
     phone_number: Optional[str] = None
     email: Optional[EmailStr] = Field(None, example="john.doe@example.com")
