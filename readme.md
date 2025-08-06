@@ -28,14 +28,14 @@
 
 [Testing 5](https://github.com/ipl2/user_management_final/blob/main/tests/test_api/test_users_api.py)
 
-[Testing 6](https://github.com/ipl2/user_management_final/blob/main/tests/test_models/test_user_model.py)
+[Testing 6](https://github.com/ipl2/user_management_final/blob/main/tests/test_services/test_user_service.py)
 
-[Testing 7](https://github.com/ipl2/user_management_final/blob/main/tests/test_models/test_user_model.py)
+[Testing 7](https://github.com/ipl2/user_management_final/blob/main/tests/test_services/test_user_service.py)
 
-[Testing 8](https://github.com/ipl2/user_management_final/blob/main/tests/test_models/test_user_model.py)
+[Testing 8](https://github.com/ipl2/user_management_final/blob/main/tests/test_services/test_user_service.py)
 
-[Testing 9](https://github.com/ipl2/user_management_final/blob/main/tests/test_models/test_user_model.py)
+[Testing 9](https://github.com/ipl2/user_management_final/blob/main/tests/test_services/test_user_service.py)
 
-[Testing 10](https://github.com/ipl2/user_management_final/blob/main/tests/test_models/test_user_model.py)
+[Testing 10](https://github.com/ipl2/user_management_final/blob/main/tests/test_services/test_user_service.py)
 
 ## Feature
