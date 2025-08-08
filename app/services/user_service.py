@@ -292,11 +292,15 @@ class UserService:
         if not target_user:
             return None
 
+
+        if target_user.role == UserRole.PROFESSIONAL:
+            return None
+    
         target_user.role = UserRole.PROFESSIONAL
         await db_session.commit()
         return target_user
 
-# notification sent when updated to professional
+# notification sent when status is updated
     @staticmethod
     async def notify_user_of_update(email_service: EmailService, user: User):
         await email_service.send_user_email(
