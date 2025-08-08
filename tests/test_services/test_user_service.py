@@ -349,3 +349,21 @@ async def test_update_user_profile_invalid_fields(db_session, user):
     assert updated_user is None
 
 '''TEST 9 END'''
+
+'''TEST 10 START'''
+
+# tests that status is not upgraded again if already professional
+@pytest.mark.asyncio
+async def test_status_upgrade_skipped_if_professional_already(db_session, admin_user, user):
+    user.role = UserRole.PROFESSIONAL
+    await db_session.commit()
+
+    result = await UserService.update_status_to_professional(
+        db_session=db_session,
+        acting_user=admin_user,
+        target_user_id=user.id
+    )
+
+    assert result is None
+
+'''TEST 10 END'''
